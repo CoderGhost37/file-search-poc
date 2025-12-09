@@ -1,0 +1,14 @@
+import { ChatWindow } from '@/components/chat/chat-window'
+import { DataSourcesContainer } from '@/components/data-sources/data-sources.container'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export default function Home() {
+  return (
+    <div className="flex flex-col lg:flex-row h-screen bg-background">
+      <DataSourcesContainer />
+      <ChatWindow />
+    </div>
+  )
+}
