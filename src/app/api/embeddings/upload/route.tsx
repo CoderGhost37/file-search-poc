@@ -2,12 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { GoogleGenAI } from '@google/genai'
 import { revalidatePath } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getFileSearchStore } from '@/app/actions'
 import { addFileToDb } from '@/lib/db'
 import { FileUploadError, getUserFriendlyErrorMessage, logError, ValidationError } from '@/lib/errors'
+import { getGoogleAIClient } from '@/lib/google-ai-client'
+import type { GoogleGenAI } from '@google/genai'
 
 const IMAGE_MIME_TYPES = new Set([
   'image/png',
@@ -221,12 +222,11 @@ export async function POST(req: NextRequest) {
     console.log("Temporary file saved at:", tmpPath)
 
     // Use Google GenAI Files + File Search Store APIs
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    })
-    console.log("Google GenAI client initialized.")
-
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    let ai: GoogleGenAI
+    try {
+      ai = getGoogleAIClient()
+      console.log("Google GenAI client initialized.")
+    } catch {
       await cleanupTempFiles(tmpFiles)
       return NextResponse.json(
         { error: 'Google AI API key is not configured' },
@@ -340,6 +340,9 @@ export async function POST(req: NextRequest) {
         config: {
           displayName,
           mimeType: uploadMimeType,
+          customMetadata: [
+            { key: 'original_filename', stringValue: file.name },
+          ]
         },
       })
 

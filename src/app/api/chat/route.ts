@@ -5,7 +5,8 @@ import { google } from '@ai-sdk/google';
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const { messages, selectedDataSources }: { messages: UIMessage[]; selectedDataSources?: { id: string, name: string }[] } = await req.json()
+  console.log('Selected Data Sources:', selectedDataSources);
 
   const lastMessage = messages[messages.length - 1]
 
@@ -17,13 +18,25 @@ export async function POST(req: Request) {
   ];
   const prompt = promptParts.map((part: any) => (part.type === 'text' ? part.text : '')).join('\n');
 
+  // Build file search configuration
+  const fileSearchConfig: any = {
+    fileSearchStoreNames: [store],
+  }
+
+  // If specific data sources are selected, build metadata filter dynamically
+  if (selectedDataSources && selectedDataSources.length > 0) {
+    const metadataFilters = selectedDataSources.map(
+      (source) => `original_filename = "${source.name}"`
+    )
+    fileSearchConfig.metadataFilter = metadataFilters.join(' OR ')
+    console.log('Metadata Filter:', fileSearchConfig.metadataFilter)
+  }
+
   const result = streamText({
     model: google('gemini-2.5-flash'),
     prompt,
     tools: {
-      file_search: google.tools.fileSearch({
-        fileSearchStoreNames: [store],
-      }) as Tool,
+      file_search: google.tools.fileSearch(fileSearchConfig) as Tool,
     },
   })
 

@@ -1,17 +1,10 @@
 'use server'
 
-import { GoogleGenAI } from '@google/genai'
 import type { DataSource } from '@/lib/types'
 import { deleteFileFromDb, getAllFiles } from '@/lib/db'
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 import { FileDeletionError, getUserFriendlyErrorMessage, logError } from '@/lib/errors'
-
-// Initialize Google AI client
-function getGoogleAI() {
-  return new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  })
-}
+import { getGoogleAIClient } from '@/lib/google-ai-client'
 
 // Get file search store name from environment variable
 async function getFileSearchStoreName(): Promise<string> {
@@ -36,6 +29,14 @@ export async function getDataSources(): Promise<DataSource[]> {
   try {
     // Fetch data from local database instead of Google API
     const files = await getAllFiles()
+
+
+    const storeName = await getFileSearchStoreName()
+    const ai = getGoogleAIClient()
+    const data = await ai.fileSearchStores.documents.list({
+      parent: storeName,
+    })
+    console.log('Fetched documents from Google API:', data)
 
     const documents: DataSource[] = files.map((file) => ({
       id: file.id,
@@ -68,7 +69,7 @@ export async function deleteDataSource(documentId: string) {
 
     // Initialize store first (ensures it exists)
     const storeName = await getFileSearchStoreName()
-    const ai = getGoogleAI()
+    const ai = getGoogleAIClient()
 
     const documentName = `${storeName}/documents/${documentId}`
     console.log('Deleting from Google API with path:', documentName)

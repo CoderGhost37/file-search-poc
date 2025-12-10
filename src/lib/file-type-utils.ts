@@ -383,3 +383,17 @@ export function getCategoryColor(category: FileTypeInfo['category']): string {
 
   return colors[category]
 }
+
+/**
+ * Get file type label from MIME type
+ */
+export function getFileTypeLabel(mimeType: string): string {
+  return getFileTypeInfo(mimeType).label
+}
+
+/**
+ * Get file type color from MIME type
+ */
+export function getFileTypeColor(mimeType: string): string {
+  return getFileTypeInfo(mimeType).color
+}
